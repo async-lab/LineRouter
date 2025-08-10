@@ -1,0 +1,68 @@
+name: snapshot
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: snapshot
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: adopt
+          java-version: 21
+
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Cache Gradle Packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/cachesq
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew build
+
+      - name: Generate Changelog
+        id: get_changelog
+        run: |
+          tag="$(git --no-pager tag --sort=creatordate --merged ${{ github.ref_name }} | grep snapshot | tail -1)"
+          limit="-1"
+          if [ -n "$tag" ]; then
+            limit="$tag..HEAD"
+          fi
+          changelog="$(echo -ne "$(git log "$limit" --pretty=format:'- %s')")"
+          changelog="$(echo "$changelog" | sed 's/$/  /')"
+          {
+            echo 'changelog<<EOF'
+            echo "$changelog"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Update Snapshot Release
+        uses: andelf/nightly-release@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: snapshot
+          name: snapshot-$$-${{ github.run_id }}
+          prerelease: true
+          body: ${{ steps.get_changelog.outputs.changelog }}
+          files: ./build/libs/*-all.jar
