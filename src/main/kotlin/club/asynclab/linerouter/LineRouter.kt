@@ -7,13 +7,11 @@ import com.google.gson.JsonParser
 import com.google.inject.Inject
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.PreLoginEvent
-import com.velocitypowered.api.event.player.GameProfileRequestEvent
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent
 import com.velocitypowered.api.event.proxy.ProxyReloadEvent
 import com.velocitypowered.api.plugin.Plugin
 import com.velocitypowered.api.plugin.annotation.DataDirectory
 import com.velocitypowered.api.proxy.ProxyServer
-import com.velocitypowered.api.util.UuidUtils
 import org.slf4j.Logger
 import java.net.URI
 import java.net.http.HttpClient
@@ -68,13 +66,13 @@ class LineRouter @Inject constructor(
         }
     }
 
-    @Subscribe(priority = Short.MIN_VALUE)
-    fun onGameProfileRequest(event: GameProfileRequestEvent) {
-        if (this.server.configuration.isOnlineMode) return
-        val offlineUuid = UuidUtils.generateOfflinePlayerUuid(event.username)
-        if (event.originalProfile.id == offlineUuid) return
-        event.gameProfile = event.originalProfile.withId(offlineUuid)
-    }
+//    @Subscribe(priority = Short.MAX_VALUE)
+//    fun onGameProfileRequest(event: GameProfileRequestEvent) {
+//        if (this.server.configuration.isOnlineMode) return
+//        val offlineUuid = UuidUtils.generateOfflinePlayerUuid(event.username)
+//        if (event.originalProfile.id == offlineUuid) return
+//        event.gameProfile = event.originalProfile.withId(offlineUuid)
+//    }
 
     fun fallbackRequest(username: String): Uuid? {
         return try {
